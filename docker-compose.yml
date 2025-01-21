@@ -1,0 +1,49 @@
+services:
+  ollama:
+    container_name: ollama
+    image: ollama/ollama:latest
+    ports:
+      - 11434:11434
+    volumes:
+      - ollama:/root/.ollama
+    pull_policy: always # Always pull the last image before starting the container
+    tty: true # Allow the interaction with the container via terminal
+    restart: unless-stopped
+    # Enable GPU connection:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [ "gpu" ]
+              count: all
+
+  open-webui:
+    container_name: open-webui
+    image: ghcr.io/open-webui/open-webui:latest
+    ports:
+      - 3000:8080
+    volumes:
+      - open-webui:/app/backend/data
+    depends_on:
+      - ollama # Ensure the 'ollama' service is started before this service
+    environment:
+      - 'OLLAMA_BASE_URL=http://ollama:11434'
+    restart: unless-stopped
+
+volumes:
+  ollama: {}
+  open-webui: {}
+
+# 1. Create the containers:
+# - RUN: docker-compose up -d
+# 2. Install the model into Ollama (in this case is phi4 but can be other model):
+# Check: https://ollama.com/search to see all the available models for Ollama
+# - RUN: docker-compose exec ollama ollama pull phi4
+# 3. Open the OpenWebUI (first time you will need to create an account):
+# - URL OpenWebUI: http://127.0.0.1:3000/auth
+# 4. Connect OpenWebUI with Ollama:
+# - Configure: OpenWebUI -> Admin Settings -> Connections -> Ollama API: http://ollama:11434
+
+#If you want to access Ollama from local host:
+# URL Ollama: http://127.0.0.1:11434
